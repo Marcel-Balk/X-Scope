@@ -18,7 +18,8 @@ channel 2.*
   panel keys
 - [X Scope Remote](X%20Scope%20-%20Application): both channels live on the PC, every key, CSV
   export and screenshots over a plain USB cable
-- Windows installer with a window: select the scope, press Install
+- One Windows setup for everything: installs X Scope Remote and flashes the firmware
+  automatically as soon as the scope is connected
 
 ## Folders
 
@@ -77,16 +78,24 @@ See [X Scope - Application](X%20Scope%20-%20Application) for use, build and the 
 
 ## Install on Windows
 
-1. Download `X-Scope-Installer.exe` from the releases page.
-2. Connect the scope by USB and open its USB disk mode:
+`X-Scope-Setup.exe` from the releases page holds everything: the firmware, the start screen and
+X Scope Remote.
+
+1. Start `X-Scope-Setup.exe` (it asks for administrator rights).
+2. Press **Install X Scope Remote**: the application goes to Program Files with a Start menu
+   entry, an optional desktop shortcut and an entry in Windows' installed apps list for removal.
+3. Connect the scope by USB and open its USB disk mode:
    - original firmware: the USB connection option of its menu
    - X Scope: Utilities, USB mode, Mass storage, then MENU, USB export
-3. Start the installer (it asks for administrator rights), select the scope and press Install.
+
+   Setup keeps watching and installs the firmware as soon as the scope appears. An update needs
+   no click, and a card that already holds this firmware is left alone.
 
 On the first install the card is repartitioned (its partition must start at 1 MiB), which erases
-the files on the card; the installer offers a full backup of the card first. Later updates keep
-the partition, files and settings. After writing, leave the USB mode (in the original firmware
-switch the scope off with the power button), then switch the scope off and on.
+the files on the card. Setup always asks before that step and first saves a full backup of the
+card to the Documents folder. Later updates keep the partition, files and settings. After
+writing, leave the USB mode (in the original firmware switch the scope off with the power
+button), then switch the scope off and on.
 
 To go back to the original firmware, hold a key at power on and choose F2, or restore the backup.
 
@@ -100,8 +109,8 @@ make
 ```
 
 `build/x-scope-1014d.bin` is the SD card image (written at 8 KiB), `build/x-scope-1014d-ram.bin`
-the firmware alone for loading over USB in FEL mode. The installer is built on Windows with
-`installer\build.cmd` after `make`, the application with `build.cmd` in its folder.
+the firmware alone for loading over USB in FEL mode. `installer\build.cmd` (Windows, after
+`make`) builds X Scope Remote and then `X-Scope-Setup.exe` with everything embedded.
 
 ## Contributors
 

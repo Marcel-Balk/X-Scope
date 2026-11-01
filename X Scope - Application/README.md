@@ -14,6 +14,9 @@ Windows application for live view and control of a FNIRSI 1014D running X Scope,
 
 ## Use
 
+`X-Scope-Setup.exe` from the releases page installs the application (Start menu, desktop
+shortcut, removal through Windows' installed apps list) together with the scope firmware.
+
 1. Connect the scope by USB. X Scope starts in USB serial mode, so it shows up as a COM port.
 2. Start `X-Scope-Remote.exe`, choose the port and press Connect.
 
