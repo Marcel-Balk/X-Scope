@@ -200,6 +200,7 @@ void sm_set_trigger_level(void);
 void sm_set_trigger_origin(uint32 doleveltoo);
 
 void sm_set_time_base(void);
+void sm_apply_settings_on_run(void);
 
 void sm_toggle_channel_enable(PCHANNELSETTINGS settings);
 

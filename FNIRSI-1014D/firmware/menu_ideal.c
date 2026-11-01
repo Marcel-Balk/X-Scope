@@ -1502,8 +1502,9 @@ void ideal_draw_fft(PCHANNELSETTINGS settings, uint32 line)
   ptr = ideal_append_text(ptr, " dBFS   10 dB/div   0 to ");
   ideal_append_frequency(ptr, rate / 2);
 
+  //Right of the T / F readout box in the top left corner of the trace area (x 6 to 106)
   display_set_font(&font_1);
-  display_text(12, 64 + (line * 16), text);
+  display_text(112, 64 + (line * 16), text);
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------

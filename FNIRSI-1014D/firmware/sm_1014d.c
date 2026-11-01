@@ -848,6 +848,12 @@ void sm_button_dial_normal_handling(void)
       //Toggle the run state
       scopesettings.runstate ^= 1;
 
+      //Settings changed while stopped only rescaled the stopped capture; apply them now
+      if((scopesettings.runstate == RUN_STATE_RUNNING) && (scopesettings.waveviewmode == 0))
+      {
+        sm_apply_settings_on_run();
+      }
+
       //Display the new state on the screen
       ui_display_run_stop_text();
       break;
@@ -1607,6 +1613,46 @@ void sm_set_time_base(void)
 
     //On a change of sample rate or time per division it is necessary to re calculate the values for determining the number of point to display
     scope_calculate_sample_range_properties();
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//While stopped, sm_set_time_base and sm_set_channel_sensitivity leave the sample rate and the input
+//sensitivity alone so the stopped capture keeps its scaling. Without this, a scope stopped at 2 ms/div,
+//set to 100 us/div and started again kept sampling at the 2 ms/div rate.
+
+void sm_apply_settings_on_run(void)
+{
+  PCHANNELSETTINGS channels[2] = { &scopesettings.channel1, &scopesettings.channel2 };
+  uint32 i, changed = 0;
+
+  if((scopesettings.long_mode == 0) && (scopesettings.samplerate != time_per_div_sample_rate[scopesettings.timeperdiv]))
+  {
+    scopesettings.samplerate = time_per_div_sample_rate[scopesettings.timeperdiv];
+    fpga_set_sample_rate(scopesettings.samplerate);
+    scope_preset_values();
+    scope_calculate_sample_range_properties();
+    ui_display_time_per_division();
+  }
+
+  for(i=0;i<2;i++)
+  {
+    PCHANNELSETTINGS settings = channels[i];
+
+    if(settings->samplevoltperdiv != settings->displayvoltperdiv)
+    {
+      settings->samplevoltperdiv = settings->displayvoltperdiv;
+      fpga_set_channel_voltperdiv(settings);
+      fpga_set_channel_offset(settings);
+      changed = 1;
+    }
+  }
+
+  if(changed)
+  {
+    //The trigger level maps through the sensitivity, then let the input circuit settle
+    fpga_set_trigger_level();
+    timer0_delay(50);
   }
 }
 
