@@ -1167,6 +1167,32 @@ namespace XScopeRemote
       return text.PadRight(10);
     }
 
+    // Connect, run for a few seconds and save the window as an image (for documentation)
+    public void CaptureLive(string port, string file)
+    {
+      portName = port;
+      ToggleConnection();
+
+      System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
+      timer.Interval = 4000;
+      timer.Tick += delegate
+      {
+        timer.Stop();
+
+        using(Bitmap bitmap = new Bitmap(Width, Height))
+        {
+          DrawToBitmap(bitmap, new Rectangle(0, 0, Width, Height));
+          bitmap.Save(file, ImageFormat.Png);
+        }
+
+        if(running)
+          Disconnect();
+
+        Close();
+      };
+      timer.Start();
+    }
+
     // Synthetic signals for a design preview without a scope
     public void ShowPreview(string file)
     {
@@ -1294,6 +1320,15 @@ namespace XScopeRemote
           form.ShowPreview(args[1]);
           form.Close();
         };
+        Application.Run(form);
+        return;
+      }
+
+      // --capture <port> <file.png>: connect to the scope, show it live for a few seconds, save the window
+      if((args.Length == 3) && (args[0] == "--capture"))
+      {
+        MainForm form = new MainForm();
+        form.Shown += delegate { form.CaptureLive(args[1], args[2]); };
         Application.Run(form);
         return;
       }

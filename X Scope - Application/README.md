@@ -2,7 +2,7 @@
 
 Windows application for live view and control of a FNIRSI 1014D running X Scope, over USB.
 
-![X Scope Remote](remote_preview.png)
+![X Scope Remote connected to a 1014D, music on channel 2](../images/x-scope-remote.png)
 
 - Both channels drawn live from the raw samples of the scope, with the scope's grid, colors,
   zero markers and trigger point
