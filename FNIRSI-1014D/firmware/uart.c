@@ -5,6 +5,7 @@
 #include "uart.h"
 #include "variables.h"
 #include "timer.h"
+#include "remote.h"
 
 //One request may be outstanding. Retry a silent controller after 20ms without
 //holding up acquisition; pace empty replies even in the modal input waits.
@@ -94,6 +95,14 @@ uint8 uart1_get_user_input(void)
   {
     //Set the received command in the user interface data to be processed
     toprocesscommand = uart1_receive_data();
+
+#if PORT_1014D
+    //Keys sent by the PC in the USB serial mode (remote.c)
+    if(toprocesscommand == 0)
+    {
+      toprocesscommand = remote_take_key();
+    }
+#endif
   }
 
   //Return the current active command as a flag to signal actual input has been received

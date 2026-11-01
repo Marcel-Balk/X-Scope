@@ -11,6 +11,7 @@
 #include "cdc_class.h"
 #include "PC_interface.h"
 #include "ideal_1014d.h"
+#include "remote.h"
 
 #include <string.h>
 
@@ -1186,7 +1187,14 @@ void usb_device_CDC_irq_handler(void)
                       //*USBC_REG_TXFIFOAD = tx_fifo_base_for_ep2; // posuň TX za RX blok
                       
                       //The base address of the second FIFO is set to the first free address (twice the receive FIFO size / 8)
+#if PORT_1014D
+                      //In units of 8 bytes: the double buffered 512 byte receive FIFO ends at 1024 bytes,
+                      //so the transmit FIFO starts at 128, as in the working mass storage setup. 512 put
+                      //it at 4 KB, past the receive and interrupt FIFOs (suspected cause of damaged screenshots)
+                      *USBC_REG_TXFIFOAD = 128;
+#else
                       *USBC_REG_TXFIFOAD = 512;
+#endif
 
                       //Enable the endpoint interrupts
                       *USBC_REG_INTRXE |= USBC_INTRX_FLAG_EP2;
@@ -1409,6 +1417,12 @@ void usb_device_CDC_irq_handler(void)
       //uint8 buffer[64]; //max is 512
       lenCDC = *USBC_REG_RXCOUNT; // počet prijatých bajtov
 
+      //A packet can hold up to 512 bytes, the buffer only 64: read the rest in the next round
+      if(lenCDC > sizeof(bufferCDC))
+      {
+        lenCDC = sizeof(bufferCDC);
+      }
+
       // Prečítaj dáta z FIFO
       usb_read_from_fifo((void *)USBC_REG_EPFIFO2, bufferCDC, lenCDC);
       //usb_CDC_out_ep_callback(buffer, len);
@@ -1481,10 +1495,10 @@ uint32 k = 20;
 //void usb_CDC_receive_callback(uint8 *data, uint32 len)
 void usb_CDC_receive_callback(void)
 {
-     
-    display_set_font(&font_2);
-    display_set_fg_color(WHITE_COLOR);
-    
+    //No display_set_font / display_set_fg_color here: this runs in the USB interrupt, and changing the
+    //shared drawing state in the middle of a main loop fill turned black areas of the screen white
+    //every time a command arrived. Nothing below draws.
+
     *USBC_REG_INTTXE &= ~USBC_INTTX_FLAG_EP2;
     *USBC_REG_INTTX = USBC_INTTX_FLAG_EP2;
     
@@ -1496,6 +1510,27 @@ void usb_CDC_receive_callback(void)
 if (c == '\n' || c == '\r')
     {
         rx_buffer[rx_index] = 0;
+
+#if PORT_1014D
+        //Empty lines (the second half of CR LF) are ignored; lines starting with an upper case letter
+        //are remote commands, executed by the main loop (remote.c)
+        if(rx_index == 0)
+        {
+          continue;
+        }
+
+        if((rx_buffer[0] >= 'A') && (rx_buffer[0] <= 'Z'))
+        {
+          if(remote_queue_line(rx_buffer) == 0)
+          {
+            usb_CDC_send_text("#ERR busy\n#END\n");
+            usb_CDC_in_ep_callback();
+          }
+
+          rx_index = 0;
+          continue;
+        }
+#endif
 
         // ----------------------------------------------------
         // 1) ENTER BEZ TEXTU → VYPÍŠ VŠETKY PREMENNÉ

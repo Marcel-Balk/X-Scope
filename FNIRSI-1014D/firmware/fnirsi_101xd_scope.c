@@ -42,6 +42,7 @@
 #include "variables.h"
 #include "ideal_1014d.h"
 #include "mmu.h"
+#include "remote.h"
 #include "menu_ideal.h"
 
 #include <string.h>
@@ -479,6 +480,9 @@ int main(void)
       static uint32 lastlayout;
       uint32 now;
       uint32 layout;
+
+      //Commands from the PC in the USB serial mode
+      remote_poll();
 
       uint32 keystart = timer0_get_ticks();
       uint32 keys = sm_handle_pending_user_input();

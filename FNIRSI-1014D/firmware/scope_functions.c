@@ -8427,7 +8427,11 @@ void scope_reset_config_data(void)
   //triggerlong = 0;
   //trigger50 = 0;      //Clear flag for channel settings 50% button
   onoffRTC    = 0;      //0-RTC Off
+#if PORT_1014D
+  USB_CH340   = 1;      //1-serial port, so the PC remote works right away
+#else
   USB_CH340   = 0;      //0-USB like MAss storage
+#endif
   dev_mode    = 0;      //1-dev mode active
   tag_in_BMP  = 1;      //1-add a tag to BMP (RTC stamp or file name)
   
@@ -8770,7 +8774,12 @@ void scope_restore_config_data(void)
     onoffRTC    = *ptr++;
     USB_CH340   = *ptr++;   //0-USB like MAss storage, 1-serial port
     //USB_CH340   = 0;        //0-USB like MAss storage, 1-serial port
-    dev_mode    = *ptr++; 
+#if PORT_1014D
+    //The 1014D always starts in serial mode so the PC remote works without a trip through the menu.
+    //Mass storage is chosen per session in Utilities and connects from the USB export screen
+    USB_CH340   = 1;
+#endif
+    dev_mode    = *ptr++;
     tag_in_BMP  = *ptr++; 
     
     mathmode = *ptr++;

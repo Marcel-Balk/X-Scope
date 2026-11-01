@@ -1228,7 +1228,7 @@ static void ideal_do_input_calibration(void)
 static const uint32 ideal_mv_per_div[7]   = { 5000, 2500, 1000, 500, 200, 100, 50 };
 static const uint32 ideal_probe_tenths[7] = { 5, 10, 100, 200, 500, 1000, 10000 };
 
-static int32 ideal_channel_mv(PCHANNELSETTINGS settings, uint32 index)
+int32 ideal_channel_mv(PCHANNELSETTINGS settings, uint32 index)
 {
   uint32 range = (settings->samplevoltperdiv < 7) ? settings->samplevoltperdiv : 6;
   uint32 mvdiv = (ideal_mv_per_div[range] * ideal_probe_tenths[settings->magnification % 7]) / 10;

@@ -54,5 +54,6 @@ void   ideal_draw_main_menu_label(uint32 item, uint32 xpos, uint32 ypos);
 
 void   ideal_draw_fft(PCHANNELSETTINGS settings, uint32 line);
 void   ideal_draw_timing_overlay(void);
+int32  ideal_channel_mv(PCHANNELSETTINGS settings, uint32 index);
 
 #endif /* MENU_IDEAL_H */
