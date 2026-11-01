@@ -12,6 +12,8 @@ available from the loader menu.
 |---|---|
 | `FNIRSI-1014D/firmware` | Scope firmware source |
 | `FNIRSI-1014D/loader` | SD card loader source. Hold a key at power on: F1 X Scope, F2 original firmware, F3 FEL (USB) mode |
+| `FNIRSI-1014D/tools` | SD card image packer |
+| `FNIRSI-1014D/installer` | Windows installer source |
 
 ### Features
 
@@ -27,6 +29,33 @@ available from the loader menu.
 
 The signal generator menu is present, but the stock FPGA has no known generator command, so it
 produces no output on the stock FPGA.
+
+### Install on Windows
+
+1. Download `X-Scope-Installer.exe` from the releases page.
+2. Connect the scope by USB and open its USB disk mode: in the original firmware the USB
+   connection option of its menu, in X Scope MENU, USB export.
+3. Start the installer (it asks for administrator rights), select the scope and press Install.
+
+On the first install the card is repartitioned (its partition must start at 1 MiB), which erases
+the files on the card; the installer offers a full backup of the card first. Later updates keep
+the partition, files and settings. After writing, leave the USB mode (in the original firmware
+switch the scope off with the power button), then switch the scope off and on.
+
+To go back to the original firmware, hold a key at power on and choose F2, or restore the backup.
+
+### Build
+
+Needs the GNU Arm toolchain (`arm-none-eabi-gcc`), GNU make and Python 3:
+
+```
+cd FNIRSI-1014D
+make
+```
+
+`build/x-scope-1014d.bin` is the SD card image (written at 8 KiB), `build/x-scope-1014d-ram.bin`
+the firmware alone for loading over USB in FEL mode. The installer is built on Windows with
+`installer\build.cmd` after `make`.
 
 ## License
 
