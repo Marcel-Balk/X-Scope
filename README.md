@@ -14,6 +14,7 @@ available from the loader menu.
 | `FNIRSI-1014D/loader` | SD card loader source. Hold a key at power on: F1 X Scope, F2 original firmware, F3 FEL (USB) mode |
 | `FNIRSI-1014D/tools` | SD card image packer |
 | `FNIRSI-1014D/installer` | Windows installer source |
+| `X Scope - Application` | X Scope Remote, the Windows application for live view and control over USB |
 
 ### Features
 
@@ -24,6 +25,8 @@ available from the loader menu.
   FFT per channel, math (A+B, A-B, AxB, A/B), software trigger hold off, eight reference waveforms
 - Utilities: input (gain) calibration, CSV export to the SD card, USB mass storage or serial,
   auto setup old/new, diagnostics with live timing
+- Remote control over USB: starts in USB serial mode, used by X Scope Remote
+  (see [X Scope - Application](X%20Scope%20-%20Application))
 - Base (zero) calibration, X-Y mode, picture and waveform save/browse, USB disk access
 - Data cache enabled (MMU, write-through), about 40 screen updates per second
 
@@ -34,7 +37,8 @@ produces no output on the stock FPGA.
 
 1. Download `X-Scope-Installer.exe` from the releases page.
 2. Connect the scope by USB and open its USB disk mode: in the original firmware the USB
-   connection option of its menu, in X Scope MENU, USB export.
+   connection option of its menu, in X Scope Utilities, USB mode, Mass storage, then MENU,
+   USB export.
 3. Start the installer (it asks for administrator rights), select the scope and press Install.
 
 On the first install the card is repartitioned (its partition must start at 1 MiB), which erases
