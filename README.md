@@ -16,8 +16,13 @@ channel 2.*
   right away
 - FFT, math, reference waveforms, averaging, sin(x)/x and more, all reachable from the front
   panel keys
+- Rise and fall time, overshoot, phase, delay, true RMS and more, with statistics over up to
+  1000 captures
+- UART and I2C decoding with the bytes drawn above the trace
+- [Remote commands](COMMANDS.md) over USB for every setting, measurement and decoder
 - [X Scope Remote](X%20Scope%20-%20Application): both channels live on the PC, every key, CSV
-  export and screenshots over a plain USB cable
+  export, screenshots and profiles that set the scope up for a task (audio, mains, PWM, UART,
+  I2C, ...) over a plain USB cable
 - One Windows setup for everything: installs X Scope Remote and flashes the firmware
   automatically as soon as the scope is connected
 
@@ -30,6 +35,7 @@ channel 2.*
 | [`FNIRSI-1014D/tools`](FNIRSI-1014D/tools) | SD card image packer |
 | [`FNIRSI-1014D/installer`](FNIRSI-1014D/installer) | Windows installer source |
 | [`X Scope - Application`](X%20Scope%20-%20Application) | X Scope Remote, the Windows application for live view and control over USB |
+| [`COMMANDS.md`](COMMANDS.md) | The remote commands of the firmware |
 
 ## FNIRSI-1014D
 
@@ -54,6 +60,15 @@ time trace. The frequency span follows the time base.
 
 - **Acquisition:** two channels, auto / normal / single trigger, roll mode down to 50 s/div
 - **Measurements:** six slots on F1 to F6, time and voltage cursors with optional cursor lock
+- **Measure & decode** (Display & analysis menu):
+  - extra measurement panel per channel: rise and fall time (10 to 90 %), overshoot,
+    undershoot, true RMS AC + DC and AC only, phase and delay CH1 to CH2
+  - statistics (last, mean, min, max, standard deviation) over the last 10 to 1000 captures
+  - UART decoding: 300 to 115200 baud or automatic, 8N1, 8E1 or 8O1, idle high or low
+  - I2C decoding: CH1 SDA, CH2 SCL; start, stop, address with read or write, data, acknowledge
+  - decoded bytes drawn above the trace, with an optional event list
+- **Remote commands:** a SCPI style command set over USB for every setting, measurement,
+  statistic, decoder, waveform and the screen, see [COMMANDS.md](COMMANDS.md)
 - **Channel menu:** probe x0.5 to x1000, DC/AC, volt or ampere, invert, FFT
 - **Display & analysis:** trace styles (linear, dots, peak, pro, sin(x)/x), averaging, grid on/off,
   FFT per channel, math (A+B, A-B, AxB, A/B), software trigger hold off, eight reference
@@ -74,6 +89,11 @@ produces no output on the stock FPGA.
 The scope starts in USB serial mode, so the application connects as soon as the cable is in.
 Both channels are drawn from the raw samples, with zoom and pan, measurements per channel,
 every front panel key, a pixel exact screenshot of the scope and CSV export.
+
+Profiles set the scope up for a task in one step: audio, mains (with a safety warning), PWM,
+UART, I2C, PSU ripple, switching supplies, battery drift, automotive 12 V, phase and Lissajous.
+Each profile is applied, read back and checked, and its measurements are shown under the graph.
+Save your own setups from the scope, edit them, and import or export them as JSON.
 See [X Scope - Application](X%20Scope%20-%20Application) for use, build and the command list.
 
 ## Install on Windows
@@ -124,6 +144,8 @@ the firmware alone for loading over USB in FEL mode. `installer\build.cmd` (Wind
   knobs without lag
 - X Scope logo, start screen and main menu icons
 - USB remote control: command protocol, serial mode at start, X Scope Remote for Windows
+- SCPI style remote commands, extra measurements, statistics over captures, UART and I2C decoding,
+  profiles in X Scope Remote
 - USB fixes: transmit FIFO address, transmit timeout, screen turning white while a PC polls
 - Time base and V/div changed while stopped now apply when acquisition starts again, FFT readout
   placed next to the T/F box

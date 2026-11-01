@@ -1492,6 +1492,27 @@ uint32 j = 182;
 uint32 k = 20;
 
 
+#if PORT_1014D
+//The debug variable syntax: one letter a to k followed by digits only
+static uint32 usb_is_debug_line(const char *line)
+{
+  if((line[0] < 'a') || (line[0] > 'k'))
+  {
+    return(0);
+  }
+
+  for(line++;*line;line++)
+  {
+    if((*line < '0') || (*line > '9'))
+    {
+      return(0);
+    }
+  }
+
+  return(1);
+}
+#endif
+
 //void usb_CDC_receive_callback(uint8 *data, uint32 len)
 void usb_CDC_receive_callback(void)
 {
@@ -1512,14 +1533,15 @@ if (c == '\n' || c == '\r')
         rx_buffer[rx_index] = 0;
 
 #if PORT_1014D
-        //Empty lines (the second half of CR LF) are ignored; lines starting with an upper case letter
-        //are remote commands, executed by the main loop (remote.c)
+        //Empty lines (the second half of CR LF) are ignored. A lower case letter a to k followed by
+        //digits only is the debug variable syntax below; every other line is a remote command,
+        //executed by the main loop (remote.c, scpi.c)
         if(rx_index == 0)
         {
           continue;
         }
 
-        if((rx_buffer[0] >= 'A') && (rx_buffer[0] <= 'Z'))
+        if(!usb_is_debug_line(rx_buffer))
         {
           if(remote_queue_line(rx_buffer) == 0)
           {

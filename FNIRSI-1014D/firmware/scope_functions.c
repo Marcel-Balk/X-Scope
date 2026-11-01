@@ -21,6 +21,7 @@
 #include "ideal_1014d.h"
 #if PORT_1014D
 #include "menu_ideal.h"
+#include "analysis_scope.h"
 void scope_display_channel_sinc_trace_1014d(PCHANNELSETTINGS settings);
 #endif
 #if PORT_1014D
@@ -953,6 +954,11 @@ void scope_acquire_trace_data(void)
     
     //flag data displayed, 1-for next conversion ready
     scopesettings.display_data_done = 1; 
+
+#if PORT_1014D
+    //Measurements, statistics and serial decoding of the new capture (analysis_scope.c)
+    as_capture_done();
+#endif
     //flag next conversion for long memory mode
 
   }
@@ -4082,6 +4088,9 @@ void scope_display_trace_data(void)
       scopesettings.runstate == RUN_STATE_RUNNING ? 0 : 1);
   ui_draw_pointers();
   ui_display_cursors();
+
+  //Decoded bytes, extra measurements and statistics panels (analysis_scope.c)
+  as_draw();
 
   if(ideal_timing_overlay)
   {
@@ -8560,6 +8569,11 @@ void scope_save_config_data(void)
   //sectors written by builds that did not store them; bit 0 set means the grid is switched off,
   //bit 1 set means cursor lock is on
   settingsworkbuffer[OTHER_SETTING_OFFSET + IDEAL_SETTINGS_INDEX] = IDEAL_SETTINGS_MARKER | (scopesettings.gridenable ? 0 : 1) | (scopesettings.lockcursors ? 2 : 0);
+
+  //Analysis settings (decode, statistics, extra measurements) in the next three words
+  settingsworkbuffer[OTHER_SETTING_OFFSET + AS_SETTINGS_INDEX]     = as_settings_word(0);
+  settingsworkbuffer[OTHER_SETTING_OFFSET + AS_SETTINGS_INDEX + 1] = as_settings_word(1);
+  settingsworkbuffer[OTHER_SETTING_OFFSET + AS_SETTINGS_INDEX + 2] = as_settings_word(2);
 #endif
 
 
@@ -8791,6 +8805,11 @@ void scope_restore_config_data(void)
     {
       scopesettings.gridenable = (settingsworkbuffer[OTHER_SETTING_OFFSET + IDEAL_SETTINGS_INDEX] & 1) ? 0 : 1;
     }
+
+    //Sectors without the analysis markers keep the defaults
+    as_settings_load(settingsworkbuffer[OTHER_SETTING_OFFSET + AS_SETTINGS_INDEX],
+                     settingsworkbuffer[OTHER_SETTING_OFFSET + AS_SETTINGS_INDEX + 1],
+                     settingsworkbuffer[OTHER_SETTING_OFFSET + AS_SETTINGS_INDEX + 2]);
 #endif
 
     //scopesettings.channel1.invert = 0; //signal inverted

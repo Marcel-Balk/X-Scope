@@ -1,10 +1,10 @@
 //----------------------------------------------------------------------------------------------------------------------------------
 //Remote control over the USB serial (CDC) mode (Utilities > USB mode > Serial)
 //
-//The PC sends text lines ending in CR or LF. Lines that start with an upper case letter are remote
-//commands; the USB interrupt only queues them and the main loop executes them here, so they run
-//next to acquisition and drawing exactly like front panel input. Replies are text lines; binary
-//blocks are announced with a header line that gives their size.
+//The PC sends text lines ending in CR or LF. The USB interrupt only queues them and the main loop
+//executes them here, so they run next to acquisition and drawing exactly like front panel input.
+//Replies are text lines; binary blocks are announced with a header line that gives their size.
+//The commands below are matched as written; every other line goes to the SCPI style command set
 //
 //  IDN?                 X Scope,FNIRSI 1014D,<version>
 //  KEYS?                the key names KEY accepts, one per line
@@ -26,6 +26,7 @@
 #include "ideal_1014d.h"
 #include "menu_ideal.h"
 #include "remote.h"
+#include "scpi.h"
 #include "timer.h"
 
 #if PORT_1014D
@@ -139,6 +140,12 @@ uint8 remote_take_key(void)
   return(key);
 }
 
+//A key press for the key handling of this main loop pass, after the reply is sent
+void remote_press_key(uint8 key)
+{
+  remote_key = key;
+}
+
 //----------------------------------------------------------------------------------------------------------------------------------
 //Send bytes straight to the CDC data endpoint, one packet at a time. Interrupts are off while the
 //endpoint registers are used, because the USB interrupt selects other endpoints with the same index
@@ -192,7 +199,7 @@ static int32 remote_send(const void *data, uint32 length)
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-static int32 remote_text(const char *text)
+int32 remote_text(const char *text)
 {
   uint32 length = 0;
 
@@ -347,7 +354,7 @@ static uint32 remote_number(const char **text)
   return(value);
 }
 
-static void remote_screen_command(const char *argument)
+void remote_screen_command(const char *argument)
 {
   uint32 first = 0;
   uint32 rows = 480;
@@ -392,7 +399,7 @@ static void remote_screen_command(const char *argument)
 
 //----------------------------------------------------------------------------------------------------------------------------------
 
-static void remote_wave_command(const char *argument)
+void remote_wave_command(const char *argument)
 {
   PCHANNELSETTINGS settings;
   uint32 count = scopesettings.samplecount;
@@ -469,7 +476,7 @@ static void remote_wave_command(const char *argument)
 static const uint32 remote_mv_per_div[7]   = { 5000, 2500, 1000, 500, 200, 100, 50 };
 static const uint32 remote_probe_tenths[7] = { 5, 10, 100, 200, 500, 1000, 10000 };
 
-static void remote_waveb_command(const char *argument)
+void remote_waveb_command(const char *argument)
 {
   PCHANNELSETTINGS settings;
   uint32 count = scopesettings.samplecount;
@@ -592,7 +599,7 @@ void remote_poll(void)
   }
   else
   {
-    remote_text("#ERR unknown command\n#END\n");
+    scpi_execute(line);
   }
 }
 

@@ -27,6 +27,8 @@
 #include "ff.h"
 #include "ideal_1014d.h"
 #include "menu_ideal.h"
+#include "analysis_1014d.h"
+#include "analysis_scope.h"
 
 #include <string.h>
 
@@ -756,6 +758,143 @@ static void ideal_open_reference_menu(void)
   ideal_menu_push(&ideal_reference_menu);
 }
 
+//----------------------------------------------------------------------------------------------------------------------------------
+//Measure & decode: extra measurements, statistics over captures and serial decoding (analysis_scope.c)
+
+static const char *ideal_extra_texts[AS_EXTRA_CHOICES]  = { "Off", "CH1", "CH2" };
+static const char *ideal_decode_texts[AS_DECODE_MODES]  = { "Off", "UART", "I2C" };
+static const char *ideal_format_texts[AS_UART_FORMATS]  = { "8N1", "8E1", "8O1" };
+
+static void ideal_extra_value(char *text)
+{
+  ideal_append_text(text, ideal_extra_texts[as_config.extra % AS_EXTRA_CHOICES]);
+}
+
+static void ideal_extra_change(int32 direction)
+{
+  as_config.extra = ideal_cycle(as_config.extra, direction, AS_EXTRA_CHOICES);
+}
+
+static void ideal_stats_value(char *text)
+{
+  ideal_on_off_text(text, as_config.stats);
+}
+
+static void ideal_stats_change(int32 direction)
+{
+  as_config.stats ^= 1;
+  as_reset_stats();
+}
+
+static void ideal_stats_n_value(char *text)
+{
+  *ideal_append_int(text, an_stat_counts[as_config.stats_n % AN_STAT_COUNTS]) = 0;
+}
+
+static void ideal_stats_n_change(int32 direction)
+{
+  as_config.stats_n = ideal_cycle(as_config.stats_n, direction, AN_STAT_COUNTS);
+  as_reset_stats();
+}
+
+static void ideal_stats_reset(void)
+{
+  as_reset_stats();
+}
+
+static void ideal_decode_value(char *text)
+{
+  ideal_append_text(text, ideal_decode_texts[as_config.decode % AS_DECODE_MODES]);
+}
+
+static void ideal_decode_change(int32 direction)
+{
+  as_config.decode = ideal_cycle(as_config.decode, direction, AS_DECODE_MODES);
+}
+
+static void ideal_baud_value(char *text)
+{
+  if(as_config.uart_baud == 0)
+  {
+    ideal_append_text(text, "Auto");
+  }
+  else
+  {
+    *ideal_append_int(text, an_uart_bauds[(as_config.uart_baud - 1) % AN_UART_BAUDS]) = 0;
+  }
+}
+
+static void ideal_baud_change(int32 direction)
+{
+  as_config.uart_baud = ideal_cycle(as_config.uart_baud, direction, AN_UART_BAUDS + 1);
+}
+
+static void ideal_format_value(char *text)
+{
+  ideal_append_text(text, ideal_format_texts[as_config.uart_format % AS_UART_FORMATS]);
+}
+
+static void ideal_format_change(int32 direction)
+{
+  as_config.uart_format = ideal_cycle(as_config.uart_format, direction, AS_UART_FORMATS);
+}
+
+static void ideal_idle_value(char *text)
+{
+  ideal_append_text(text, as_config.uart_idle_low ? "Low (inverted)" : "High");
+}
+
+static void ideal_idle_change(int32 direction)
+{
+  as_config.uart_idle_low ^= 1;
+}
+
+static void ideal_uart_source_value(char *text)
+{
+  ideal_append_text(text, as_config.uart_source ? "CH2" : "CH1");
+}
+
+static void ideal_uart_source_change(int32 direction)
+{
+  as_config.uart_source ^= 1;
+}
+
+static void ideal_event_list_value(char *text)
+{
+  ideal_on_off_text(text, as_config.event_list);
+}
+
+static void ideal_event_list_change(int32 direction)
+{
+  as_config.event_list ^= 1;
+}
+
+static const IDEALMENUITEM ideal_analysis_items[] =
+{
+  { "Extra measurements", ideal_extra_value,       ideal_extra_change,       0 },
+  { "Statistics",         ideal_stats_value,       ideal_stats_change,       0 },
+  { "Statistics over N",  ideal_stats_n_value,     ideal_stats_n_change,     0 },
+  { "Reset statistics",   0,                       0,                        ideal_stats_reset },
+  { "Decode",             ideal_decode_value,      ideal_decode_change,      0 },
+  { "UART baud",          ideal_baud_value,        ideal_baud_change,        0 },
+  { "UART format",        ideal_format_value,      ideal_format_change,      0 },
+  { "UART idle level",    ideal_idle_value,        ideal_idle_change,        0 },
+  { "UART source",        ideal_uart_source_value, ideal_uart_source_change, 0 },
+  { "Event list",         ideal_event_list_value,  ideal_event_list_change,  0 },
+};
+
+static const IDEALMENU ideal_analysis_menu =
+{
+  "Measure & decode (I2C: CH1 SDA, CH2 SCL)",
+  ideal_analysis_items,
+  sizeof(ideal_analysis_items) / sizeof(IDEALMENUITEM)
+};
+
+static void ideal_open_analysis_menu(void)
+{
+  ideal_menu_push(&ideal_analysis_menu);
+}
+
 static const IDEALMENUITEM ideal_display_items[] =
 {
   { "Trace style",      ideal_trace_value,   ideal_trace_change,   0 },
@@ -769,6 +908,7 @@ static const IDEALMENUITEM ideal_display_items[] =
   { "Math source B",    ideal_math_b_value,  ideal_math_b_change,  0 },
   { "Trigger hold off", ideal_holdoff_value, ideal_holdoff_change, 0 },
   { "Reference waves",  0,                   0,                    ideal_open_reference_menu },
+  { "Measure & decode", 0,                   0,                    ideal_open_analysis_menu },
 };
 
 const IDEALMENU ideal_display_menu =

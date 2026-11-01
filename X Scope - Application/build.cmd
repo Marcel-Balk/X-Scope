@@ -5,5 +5,5 @@ set CSC=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe
 if not exist "%CSC%" set CSC=%WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe
 cd /d "%~dp0"
 "%CSC%" /nologo /target:winexe /optimize+ /out:X-Scope-Remote.exe /win32icon:xscope.ico ^
-  /reference:System.Windows.Forms.dll /reference:System.Drawing.dll ^
-  XScopeRemote.cs
+  /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ^
+  XScopeRemote.cs Profiles.cs

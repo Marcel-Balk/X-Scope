@@ -3,7 +3,7 @@
 // Live view and control of the scope over its USB serial mode (the scope starts in it; Utilities >
 // USB mode switches to mass storage for a session). The traces are read as raw samples and drawn here, the measurements are computed here,
 // and every front panel key is available. Mouse wheel over the graph zooms the time axis, dragging
-// pans, double click shows the whole record.
+// pans, double click shows the whole record. Profiles (Profiles.cs) set the scope up for a task.
 
 using System;
 using System.Collections.Generic;
@@ -309,6 +309,34 @@ namespace XScopeRemote
           throw new IOException(lines[0].Substring(1));
 
         return lines;
+      }
+    }
+
+    // The reply lines of a command as they are, errors included
+    public List<string> CommandRaw(string command)
+    {
+      lock(sync)
+      {
+        try
+        {
+          port.Write(command + "\n");
+
+          List<string> lines = new List<string>();
+          while(true)
+          {
+            string line = ReadLine();
+
+            if(line == "#END")
+              return lines;
+
+            lines.Add(line);
+          }
+        }
+        catch(Exception)
+        {
+          Resync();
+          throw;
+        }
       }
     }
 
@@ -721,6 +749,8 @@ namespace XScopeRemote
     private ValueLabel[] scaleLabels = new ValueLabel[3];
     private ValueLabel[] couplingLabels = new ValueLabel[3];
     private ValueLabel[] measureLabels = new ValueLabel[3];
+    private ValueLabel profileLabel = new ValueLabel(Theme.Normal);
+    private volatile Profile activeProfile;
 
     private Thread worker;
     private volatile bool running;
@@ -748,8 +778,25 @@ namespace XScopeRemote
       BuildSidebar();
 
       plot.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-      plot.SetBounds(16, 72, ClientSize.Width - 16 - 340, ClientSize.Height - 72 - 16);
+      plot.SetBounds(16, 72, ClientSize.Width - 16 - 340, ClientSize.Height - 72 - 16 - 40);
       Controls.Add(plot);
+
+      // Active profile and its measurements under the graph
+      profileLabel.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+      profileLabel.Color = Theme.Dim;
+      profileLabel.SetBounds(20, ClientSize.Height - 16 - 34, ClientSize.Width - 16 - 340 - 8 - 130, 30);
+      profileLabel.SetText("No profile applied. Profiles set the scope up for a task (audio, mains, PWM, UART, I2C, ...).");
+      Controls.Add(profileLabel);
+
+      FlatButton profiles = new FlatButton("Profiles");
+      profiles.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+      profiles.SetBounds(ClientSize.Width - 340 - 8 - 120, ClientSize.Height - 16 - 34, 120, 32);
+      profiles.Click += delegate
+      {
+        using(ProfileDialog dialog = new ProfileDialog(this, link))
+          dialog.ShowDialog(this);
+      };
+      Controls.Add(profiles);
 
       KeyDown += OnKeyDown;
       FormClosing += delegate { Disconnect(); };
@@ -762,11 +809,15 @@ namespace XScopeRemote
     protected override void OnHandleCreated(EventArgs e)
     {
       base.OnHandleCreated(e);
+      DarkTitle(Handle);
+    }
 
-      // Immersive dark mode title bar (attribute 20, 19 on older Windows 10 builds)
+    // Immersive dark mode title bar (attribute 20, 19 on older Windows 10 builds)
+    public static void DarkTitle(IntPtr window)
+    {
       int on = 1;
-      if(DwmSetWindowAttribute(Handle, 20, ref on, 4) != 0)
-        DwmSetWindowAttribute(Handle, 19, ref on, 4);
+      if(DwmSetWindowAttribute(window, 20, ref on, 4) != 0)
+        DwmSetWindowAttribute(window, 19, ref on, 4);
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -1056,10 +1107,82 @@ namespace XScopeRemote
       connectButton.Invalidate();
     }
 
+    // Called after a profile was applied: its measurements are shown under the graph
+    public void SetActiveProfile(Profile profile)
+    {
+      activeProfile = profile;
+      profileLabel.Color = Theme.Text;
+      profileLabel.SetText("Profile: " + profile.Name);
+    }
+
+    private static string MeasurementUnit(string name)
+    {
+      switch(name)
+      {
+        case "FREQ": return "Hz";
+        case "PERIOD": case "PWIDTH": case "NWIDTH": case "RISE": case "FALL": case "DELAY": return "s";
+        case "PDUTY": case "NDUTY": case "OVERSHOOT": case "UNDERSHOOT": return "%";
+        case "PHASE": return "\u00B0";
+      }
+      return "V";
+    }
+
+    // The profile's measurements from the scope, in lines of at most 120 characters
+    private string ReadProfileMeasurements(Profile profile)
+    {
+      List<string> queries = new List<string>();
+      List<string> labels = new List<string>();
+      List<string> units = new List<string>();
+
+      foreach(string m in profile.Measurements)
+      {
+        string channel, name;
+        Profile.SplitMeasurement(m, out channel, out name);
+        bool pair = (name == "PHASE") || (name == "DELAY");
+        queries.Add("MEAS:" + name + "? " + channel);
+        labels.Add((pair ? "" : ((channel == "CHAN2") ? "CH2 " : "CH1 ")) + name.Substring(0, 1) + name.Substring(1).ToLowerInvariant());
+        units.Add(MeasurementUnit(name));
+      }
+
+      List<string> values = new List<string>();
+      int start = 0;
+
+      while(start < queries.Count)
+      {
+        StringBuilder line = new StringBuilder(queries[start]);
+        int end = start + 1;
+
+        while((end < queries.Count) && (line.Length + 1 + queries[end].Length <= 120))
+          line.Append(';').Append(queries[end++]);
+
+        values.AddRange(link.CommandRaw(line.ToString()));
+        start = end;
+      }
+
+      StringBuilder text = new StringBuilder("Profile: " + profile.Name);
+      CultureInfo c = CultureInfo.InvariantCulture;
+
+      for(int i = 0; i < labels.Count; i++)
+      {
+        double value;
+        string shown = "?";
+
+        if((i < values.Count) && double.TryParse(values[i], NumberStyles.Float, c, out value))
+          shown = (value > 9e37) ? "-" : (units[i] == "%" || units[i] == "\u00B0") ? value.ToString("0.0", c) + " " + units[i] : PlotView.Format(value, units[i]);
+        else if(i < values.Count)
+          shown = values[i].StartsWith("#ERR") ? "error" : values[i];
+
+        text.Append("     ").Append(labels[i]).Append("  ").Append(shown);
+      }
+
+      return text.ToString();
+    }
+
     // Background loop: keys first, then both channels, the settings twice a second
     private void Work()
     {
       DateTime lastStatus = DateTime.MinValue;
+      DateTime lastMeasure = DateTime.MinValue;
       int frames = 0;
       DateTime rateStart = DateTime.Now;
 
@@ -1088,6 +1211,14 @@ namespace XScopeRemote
           {
             status = link.Command("STATUS?");
             lastStatus = DateTime.Now;
+          }
+
+          Profile profile = activeProfile;
+          if((profile != null) && (profile.Measurements.Count > 0) && ((DateTime.Now - lastMeasure).TotalMilliseconds > 500))
+          {
+            string text = ReadProfileMeasurements(profile);
+            lastMeasure = DateTime.Now;
+            BeginInvoke(new Action(delegate { profileLabel.SetText(text); }));
           }
 
           frames++;
@@ -1318,6 +1449,51 @@ namespace XScopeRemote
         {
           Application.DoEvents();
           form.ShowPreview(args[1]);
+          form.Close();
+        };
+        Application.Run(form);
+        return;
+      }
+
+      // --dump-profiles <file.txt>: the commands of every built-in profile after a JSON round trip, one
+      // profile per block, for checking them against the firmware's command parser
+      if((args.Length == 2) && (args[0] == "--dump-profiles"))
+      {
+        StringBuilder dump = new StringBuilder();
+        foreach(Profile p in ProfileStore.BuiltIn())
+        {
+          Profile copy = Profile.FromJson(p.ToJson());
+          if((copy.ToJson() != p.ToJson()) || (copy.Commands().Count != p.Commands().Count))
+            throw new InvalidDataException("JSON round trip changed " + p.Name);
+          dump.Append("# ").Append(p.Name).Append('\n');
+          foreach(string command in copy.Commands())
+            dump.Append(command).Append('\n');
+        }
+        File.WriteAllText(args[1], dump.ToString());
+        return;
+      }
+
+      // --profiles-preview <file.png>: draw the profile window into an image and quit
+      if((args.Length == 2) && (args[0] == "--profiles-preview"))
+      {
+        MainForm form = new MainForm();
+        form.Opacity = 0.01;
+        form.ShowInTaskbar = false;
+        form.Shown += delegate
+        {
+          ProfileDialog dialog = new ProfileDialog(form, new ScopeLink());
+          dialog.Opacity = 0.01;
+          dialog.Shown += delegate
+          {
+            Application.DoEvents();
+            using(Bitmap bitmap = new Bitmap(dialog.Width, dialog.Height))
+            {
+              dialog.DrawToBitmap(bitmap, new Rectangle(0, 0, dialog.Width, dialog.Height));
+              bitmap.Save(args[1], ImageFormat.Png);
+            }
+            dialog.Close();
+          };
+          dialog.ShowDialog(form);
           form.Close();
         };
         Application.Run(form);

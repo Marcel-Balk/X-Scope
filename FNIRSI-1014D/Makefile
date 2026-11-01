@@ -52,6 +52,9 @@ FW_OBJECTS := DS3231.o \
               xscope_logo.o \
               mmu.o \
               remote.o \
+              scpi.o \
+              analysis_1014d.o \
+              analysis_scope.o \
               main_menu_ideal_icons.o \
               memcmp.o \
               memcpy.o \
