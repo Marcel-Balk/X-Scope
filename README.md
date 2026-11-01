@@ -103,8 +103,25 @@ make
 the firmware alone for loading over USB in FEL mode. The installer is built on Windows with
 `installer\build.cmd` after `make`, the application with `build.cmd` in its folder.
 
+## Contributors
+
+**[Marcel Balk](https://github.com/Marcel-Balk)** (2026), X Scope for the FNIRSI 1014D:
+
+- Port to the 1014D front panel: every function reachable from the keys and knobs, with the
+  Display & analysis, Utilities, Channel, Reference waves and Diagnostics menus
+- FFT, math, sin(x)/x, averaging, reference waveforms, trigger hold off, cursor lock, input
+  (gain) calibration and CSV export
+- Data cache (MMU, write-through): screen updates from about 10 to about 40 per second, menus and
+  knobs without lag
+- X Scope logo, start screen and main menu icons
+- USB remote control: command protocol, serial mode at start, X Scope Remote for Windows
+- USB fixes: transmit FIFO address, transmit timeout, screen turning white while a PC polls
+- Time base and V/div changed while stopped now apply when acquisition starts again, FFT readout
+  placed next to the T/F box
+- Windows installer, SD card image packer and build files
+
 ## License
 
-GPLv3, see [LICENSE](LICENSE). X Scope is a modified version (2026) of GPLv3 licensed open
-firmware for FNIRSI oscilloscopes. FatFs is copyright ChaN under its own license, included in
+GPLv3, see [LICENSE](LICENSE). X Scope is a modified version (2026, Marcel Balk) of GPLv3
+licensed open firmware for FNIRSI oscilloscopes. FatFs is copyright ChaN under its own license, included in
 the source files.
